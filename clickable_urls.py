@@ -59,7 +59,27 @@ class UrlHighlighter(sublime_plugin.EventListener):
 
         urls = view.find_all(UrlHighlighter.URL_REGEX)
         file_urls = view.find_all(UrlHighlighter.FILE_URL_REGEX)
+        restruc_urls = view.find_all("`")
 
+        print("RestructuredTextURL: " + str(restruc_urls))
+
+        if len(restruc_urls) > 1:
+            for i in range(0, len(restruc_urls)-1):
+                possible_url_region = sublime.Region(restruc_urls[i].a,restruc_urls[i+1].b)
+                possible_url = view.substr(possible_url_region)
+                possible_url = possible_url[1:len(possible_url)-1]
+                if not '\n' in possible_url:
+                    possible_url_regex = "\\b_" + possible_url  + ": file?:///[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]"
+                    new_url = view.find_all(possible_url_regex)
+                    print("Possible URL? " + possible_url + " in region " + str(new_url))
+                    if len(new_url) == 1:
+                        urls.append(possible_url_region)
+                    else:
+                        possible_url_regex = "\\b_" + possible_url  + ": https?://[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]"
+                        new_url = view.find_all(possible_url_regex)
+                        print("Possible URL? " + possible_url + " in region " + str(new_url))
+                        if len(new_url) == 1:
+                            urls.append(possible_url_region)
 
         for u in file_urls:
             urls.append(u)
@@ -148,7 +168,27 @@ class OpenUrlUnderCursorCommand(sublime_plugin.TextCommand):
                 if not selection:
                     return
             url = self.view.substr(selection)
-            open_url(url)
+            if url[0] == '`' and url[len(url)-1] == '`':
+                possible_url = url[1:len(url)-1]
+                possible_url_regex = "\\b_" + possible_url  + ": file?:///[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]"
+                new_url = self.view.find_all(possible_url_regex)
+                print("Lets open URL? " + possible_url + " in region " + str(new_url))
+                if len(new_url) == 1:
+                    url = self.view.substr(new_url[0])
+                    url = url[len(possible_url) + 3:]
+                    print("Trying to open " + url)
+                    open_url(url)
+                else:
+                    possible_url_regex = "\\b_" + possible_url  + ": https?://[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]"
+                    new_url = self.view.find_all(possible_url_regex)
+                    print("Possible URL? " + possible_url + " in region " + str(new_url))
+                    if len(new_url) == 1:
+                        url = self.view.substr(new_url[0])
+                        url = url[len(possible_url) + 3:]
+                        print("Trying to open " + url)
+                        open_url(url)
+            else:
+                open_url(url)
 
 
 class OpenAllUrlsCommand(sublime_plugin.TextCommand):
