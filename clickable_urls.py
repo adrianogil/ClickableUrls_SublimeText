@@ -8,6 +8,7 @@ class UrlHighlighter(sublime_plugin.EventListener):
     # Thanks Jeff Atwood http://www.codinghorror.com/blog/2008/10/the-problem-with-urls.html
     # ^ that up here is a URL that should be matched
     URL_REGEX = "\\bhttps?://[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]"
+    FILE_URL_REGEX = "\\bfile?:///[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]"
     DEFAULT_MAX_URLS = 200
     SETTINGS_FILENAME = 'ClickableUrls.sublime-settings'
 
@@ -43,6 +44,12 @@ class UrlHighlighter(sublime_plugin.EventListener):
 
     """The logic entry point. Find all URLs in view, store and highlight them"""
     def update_url_highlights(self, view):
+    #     update_http_url_highlights(self, view)
+
+    # def update_file_url_hightlights(self, view):
+
+
+    # def update_http_url_highlights(self, view):
         settings = sublime.load_settings(UrlHighlighter.SETTINGS_FILENAME)
         should_highlight_urls = settings.get('highlight_urls', True)
         max_url_limit = settings.get('max_url_limit', UrlHighlighter.DEFAULT_MAX_URLS)
@@ -51,6 +58,11 @@ class UrlHighlighter(sublime_plugin.EventListener):
             return
 
         urls = view.find_all(UrlHighlighter.URL_REGEX)
+        file_urls = view.find_all(UrlHighlighter.FILE_URL_REGEX)
+
+
+        for u in file_urls:
+            urls.append(u)
 
         # Avoid slowdowns for views with too much URLs
         if len(urls) > max_url_limit:
