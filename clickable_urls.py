@@ -3,12 +3,14 @@ import sublime_plugin
 import webbrowser
 import threading
 
+import os
 
 class UrlHighlighter(sublime_plugin.EventListener):
     # Thanks Jeff Atwood http://www.codinghorror.com/blog/2008/10/the-problem-with-urls.html
     # ^ that up here is a URL that should be matched
     URL_REGEX = "\\bhttps?://[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]"
     FILE_URL_REGEX = "\\bfile?:///[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]"
+    NOTE_URL_REGEX = "\\bnote?:///[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]"
     DEFAULT_MAX_URLS = 200
     SETTINGS_FILENAME = 'ClickableUrls.sublime-settings'
 
@@ -59,6 +61,7 @@ class UrlHighlighter(sublime_plugin.EventListener):
 
         urls = view.find_all(UrlHighlighter.URL_REGEX)
         file_urls = view.find_all(UrlHighlighter.FILE_URL_REGEX)
+        note_urls = view.find_all(UrlHighlighter.NOTE_URL_REGEX)
         restruc_urls = view.find_all("`")
 
         print("RestructuredTextURL: " + str(restruc_urls))
@@ -83,6 +86,9 @@ class UrlHighlighter(sublime_plugin.EventListener):
 
         for u in file_urls:
             urls.append(u)
+
+        for n in note_urls:
+            urls.append(n)
 
         # Avoid slowdowns for views with too much URLs
         if len(urls) > max_url_limit:
@@ -153,6 +159,7 @@ class UrlHighlighter(sublime_plugin.EventListener):
 
 
 def open_url(url):
+    print('open_url ' + url)
     browser =  sublime.load_settings(UrlHighlighter.SETTINGS_FILENAME).get('clickable_urls_browser')
     try:
         webbrowser.get(browser).open(url, autoraise=True)
@@ -168,27 +175,46 @@ class OpenUrlUnderCursorCommand(sublime_plugin.TextCommand):
                 if not selection:
                     return
             url = self.view.substr(selection)
-            if url[0] == '`' and url[len(url)-1] == '`':
-                possible_url = url[1:len(url)-1]
-                possible_url_regex = "\\b_" + possible_url  + ": file?:///[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]"
+            
+            self.verify_url(url)
+
+    def verify_markdown_url(self, url):
+        if url[0] == '`' and url[len(url)-1] == '`':
+            possible_url = url[1:len(url)-1]
+            possible_url_regex = "\\b_" + possible_url  + ": file?:///[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]"
+            new_url = self.view.find_all(possible_url_regex)
+            print("Lets open URL? " + possible_url + " in region " + str(new_url))
+            if len(new_url) == 1:
+                url = self.view.substr(new_url[0])
+                url = url[len(possible_url) + 3:]
+                print("Trying to open " + url)
+                open_url(url)
+                return True
+            else:
+                possible_url_regex = "\\b_" + possible_url  + ": https?://[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]"
                 new_url = self.view.find_all(possible_url_regex)
-                print("Lets open URL? " + possible_url + " in region " + str(new_url))
+                print("Possible URL? " + possible_url + " in region " + str(new_url))
                 if len(new_url) == 1:
                     url = self.view.substr(new_url[0])
                     url = url[len(possible_url) + 3:]
                     print("Trying to open " + url)
                     open_url(url)
-                else:
-                    possible_url_regex = "\\b_" + possible_url  + ": https?://[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]"
-                    new_url = self.view.find_all(possible_url_regex)
-                    print("Possible URL? " + possible_url + " in region " + str(new_url))
-                    if len(new_url) == 1:
-                        url = self.view.substr(new_url[0])
-                        url = url[len(possible_url) + 3:]
-                        print("Trying to open " + url)
-                        open_url(url)
-            else:
-                open_url(url)
+                    return True
+        return False
+
+    def verify_note_url(self, url):
+        if 'note://' in url:
+            note_path = os.environ['HOME'] + '/Notes/' + url[7:] + '.note'
+            print('verify_note_url: ' + note_path)
+            self.view.window().open_file(note_path)
+            return True
+        return False
+
+
+    def verify_url(self, url):
+        self.verify_markdown_url(url) or \
+        self.verify_note_url(url) or \
+        open_url(url)
 
 
 class OpenAllUrlsCommand(sublime_plugin.TextCommand):
