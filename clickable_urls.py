@@ -83,6 +83,12 @@ class UrlHighlighter(sublime_plugin.EventListener):
                         print("Possible URL? " + possible_url + " in region " + str(new_url))
                         if len(new_url) == 1:
                             urls.append(possible_url_region)
+                        else:
+                            possible_url_regex = "\\b_" + possible_url  + ": note?:///[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]"
+                            new_url = view.find_all(possible_url_regex)
+                            print("Possible URL? " + possible_url + " in region " + str(new_url))
+                            if len(new_url) == 1:
+                                urls.append(possible_url_region)
 
         for u in file_urls:
             urls.append(u)
@@ -200,6 +206,16 @@ class OpenUrlUnderCursorCommand(sublime_plugin.TextCommand):
                     print("Trying to open " + url)
                     open_url(url)
                     return True
+                else:
+                    possible_url_regex = "\\b_" + possible_url  + ": note?:///[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]"
+                    new_url = self.view.find_all(possible_url_regex)
+                    print("Possible URL? " + possible_url + " in region " + str(new_url))
+                    if len(new_url) == 1:
+                        url = self.view.substr(new_url[0])
+                        url = url[len(possible_url) + 3:]
+                        print("Trying to open " + url)
+                        self.verify_note_url(url)
+                        return True
         return False
 
     def verify_note_url(self, url):
