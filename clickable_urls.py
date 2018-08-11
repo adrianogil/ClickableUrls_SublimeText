@@ -175,7 +175,7 @@ class OpenUrlUnderCursorCommand(sublime_plugin.TextCommand):
                 if not selection:
                     return
             url = self.view.substr(selection)
-            
+
             self.verify_url(url)
 
     def verify_markdown_url(self, url):
@@ -204,6 +204,7 @@ class OpenUrlUnderCursorCommand(sublime_plugin.TextCommand):
 
     def verify_note_url(self, url):
         if 'note://' in url:
+            url = url.replace('%20', ' ')
             note_path = os.environ['HOME'] + '/Notes/' + url[7:] + '.note'
             print('verify_note_url: ' + note_path)
             self.view.window().open_file(note_path)
