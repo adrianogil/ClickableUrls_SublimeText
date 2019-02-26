@@ -209,7 +209,12 @@ class OpenUrlUnderCursorCommand(sublime_plugin.TextCommand):
                 url = self.view.substr(new_url[0])
                 url = url[len(possible_url) + 3:]
                 print("Trying to open " + url[8:])
-                self.view.window().open_file(url[7:] + (":" + str(line) + ":0" if line is not None else ""), sublime.ENCODED_POSITION)
+                url_line = ""
+                if line is not None:
+                    url_line = ":" + line
+                    if url_line.count(":") == 1:
+                        url_line = url_line + ":0"
+                self.view.window().open_file(url[7:] + url_line, sublime.ENCODED_POSITION)
                 # open_url(url + (":" + str(line) if line is not None else ""))
                 return True
             else:
