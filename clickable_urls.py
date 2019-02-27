@@ -214,8 +214,10 @@ class OpenUrlUnderCursorCommand(sublime_plugin.TextCommand):
                     url_line = ":" + line
                     if url_line.count(":") == 1:
                         url_line = url_line + ":0"
-                self.view.window().open_file(url[7:] + url_line, sublime.ENCODED_POSITION)
-                # open_url(url + (":" + str(line) if line is not None else ""))
+                if url.endswith(".pdf"):
+                    open_url(url + (":" + str(line) if line is not None else ""))
+                else:
+                    self.view.window().open_file(url[7:] + url_line, sublime.ENCODED_POSITION)
                 return True
             else:
                 possible_url_regex = "\\b_" + possible_url  + ": https?://[-A-Za-z0-9+&@#/%?=~_()|!:,.;']*[-A-Za-z0-9+&@#/%=~_(|]"
