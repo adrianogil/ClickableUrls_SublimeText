@@ -270,3 +270,32 @@ class OpenAllUrlsCommand(sublime_plugin.TextCommand):
         if self.view.id() in UrlHighlighter.urls_for_view:
             for url in set([self.view.substr(url_region) for url_region in UrlHighlighter.urls_for_view[self.view.id()]]):
                 open_url(url)
+
+class RemoveUnusedMarkdownUrls(sublime_plugin.TextCommand):
+    def run(self, edit):
+        current_file = self.view.file_name()
+
+        print(current_file)
+
+        if current_file is None:
+            return
+
+        file_lines = []
+        with open(current_file, 'r', errors='replace') as text_file:
+            file_lines = text_file.readlines()
+
+        for line in file_lines:
+
+            if line[0] == '_':
+                point_index = line.index(':')
+                if point_index != -1:
+                    url_alias = line[1:point_index]
+                    results = self.view.find_all("`" + url_alias + "`")
+                    if results:
+                        print(url_alias)
+                    else:
+                        region = self.view.find_all(line)
+                        self.view.replace(edit, region[0], "")
+                    # print(str(results))
+
+
